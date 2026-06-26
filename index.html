@@ -4,63 +4,89 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Wedding AR</title>
 
-<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-three.prod.js"></script>
+<script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
 
 <style>
-body { margin: 0; overflow: hidden; background: black; }
+body { margin:0; overflow:hidden; background:black; }
 #startButton {
-  position: fixed;
-  z-index: 999;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  padding: 16px 26px;
-  font-size: 20px;
-  border: none;
-  border-radius: 12px;
+position:fixed;
+z-index:9999;
+top:50%;
+left:50%;
+transform:translate(-50%,-50%);
+padding:16px 26px;
+font-size:20px;
+border-radius:12px;
+}
+#msg {
+position:fixed;
+z-index:9999;
+bottom:20px;
+left:10px;
+right:10px;
+color:white;
+background:rgba(0,0,0,0.6);
+padding:10px;
+text-align:center;
 }
 </style>
 </head>
 
 <body>
+
 <button id="startButton">Start AR</button>
+<div id="msg">Tap Start AR</div>
+
+<a-scene
+mindar-image="imageTargetSrc: targets.mind;"
+color-space="sRGB"
+renderer="colorManagement: true, physicallyCorrectLights"
+vr-mode-ui="enabled: false"
+device-orientation-permission-ui="enabled: false">
+
+<a-assets>
+<video id="video" src="overlay.mp4" preload="auto" loop muted playsinline webkit-playsinline></video>
+</a-assets>
+
+<a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+
+<a-entity id="target" mindar-image-target="targetIndex: 0">
+<a-video src="#video" width="1" height="0.65" position="0 0 0"></a-video>
+</a-entity>
+
+</a-scene>
 
 <script>
-document.getElementById("startButton").onclick = async () => {
-  document.getElementById("startButton").style.display = "none";
+const startButton = document.getElementById("startButton");
+const msg = document.getElementById("msg");
+const video = document.getElementById("video");
+const scene = document.querySelector("a-scene");
+const target = document.getElementById("target");
 
-  const mindarThree = new window.MINDAR.IMAGE.MindARThree({
-    container: document.body,
-    imageTargetSrc: "./targets.mind"
-  });
+startButton.addEventListener("click", async () => {
+  msg.innerText = "Starting camera...";
+  startButton.style.display = "none";
 
-  const { renderer, scene, camera } = mindarThree;
+  try {
+    await video.play();
+    video.pause();
+    msg.innerText = "Camera loading. Please allow camera permission.";
+  } catch (e) {
+    msg.innerText = "Video ready. Waiting for camera...";
+  }
+});
 
-  const video = document.createElement("video");
-  video.src = "./overlay.mp4";
-  video.loop = true;
-  video.muted = true;
-  video.playsInline = true;
-  video.crossOrigin = "anonymous";
+target.addEventListener("targetFound", () => {
+  msg.innerText = "Photo detected!";
+  video.play();
+});
 
-  await video.play();
-
-  const texture = new THREE.VideoTexture(video);
-
-  const geometry = new THREE.PlaneGeometry(1, 0.65);
-  const material = new THREE.MeshBasicMaterial({ map: texture });
-  const plane = new THREE.Mesh(geometry, material);
-
-  const anchor = mindarThree.addAnchor(0);
-  anchor.group.add(plane);
-
-  await mindarThree.start();
-
-  renderer.setAnimationLoop(() => {
-    renderer.render(scene, camera);
-  });
-};
+target.addEventListener("targetLost", () => {
+  msg.innerText = "Point camera at the wedding photo";
+  video.pause();
+});
 </script>
+
 </body>
 </html>
