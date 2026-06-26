@@ -1,27 +1,66 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Wedding AR</title>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-three.prod.js"></script>
+
 <style>
-body{
-font-family:Arial;
-background:#000;
-color:#fff;
-display:flex;
-justify-content:center;
-align-items:center;
-height:100vh;
-margin:0;
-text-align:center;
+body { margin: 0; overflow: hidden; background: black; }
+#startButton {
+  position: fixed;
+  z-index: 999;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  padding: 16px 26px;
+  font-size: 20px;
+  border: none;
+  border-radius: 12px;
 }
 </style>
 </head>
 
 <body>
-<div>
-<h1>🎉 Wedding AR Ready!</h1>
-<p>If you can see this page, GitHub Pages is working.</p>
-</div>
+<button id="startButton">Start AR</button>
+
+<script>
+document.getElementById("startButton").onclick = async () => {
+  document.getElementById("startButton").style.display = "none";
+
+  const mindarThree = new window.MINDAR.IMAGE.MindARThree({
+    container: document.body,
+    imageTargetSrc: "./targets.mind"
+  });
+
+  const { renderer, scene, camera } = mindarThree;
+
+  const video = document.createElement("video");
+  video.src = "./overlay.mp4";
+  video.loop = true;
+  video.muted = true;
+  video.playsInline = true;
+  video.crossOrigin = "anonymous";
+
+  await video.play();
+
+  const texture = new THREE.VideoTexture(video);
+
+  const geometry = new THREE.PlaneGeometry(1, 0.65);
+  const material = new THREE.MeshBasicMaterial({ map: texture });
+  const plane = new THREE.Mesh(geometry, material);
+
+  const anchor = mindarThree.addAnchor(0);
+  anchor.group.add(plane);
+
+  await mindarThree.start();
+
+  renderer.setAnimationLoop(() => {
+    renderer.render(scene, camera);
+  });
+};
+</script>
 </body>
 </html>
